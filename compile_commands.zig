@@ -18,10 +18,10 @@ const CompileCommandEntry = struct {
     output: []const u8,
 };
 
-pub fn createStep(b: *std.Build, name: []const u8, targets: []*std.Build.Step.Compile) void {
+pub fn createStep(b: *std.Build, targets: []*std.Build.Step.Compile) *std.Build.Step {
     const step = b.allocator.create(std.Build.Step) catch @panic("Allocation failure, probably OOM");
 
-    compile_steps = targets;
+    compile_steps = b.allocator.dupe(*std.Build.Step.Compile, targets) catch @panic("OOM");
 
     step.* = std.Build.Step.init(.{
         .id = .custom,
@@ -29,9 +29,7 @@ pub fn createStep(b: *std.Build, name: []const u8, targets: []*std.Build.Step.Co
         .makeFn = makeCdb,
         .owner = b,
     });
-
-    const cdb_step = b.step(name, "Create compile_commands.json");
-    cdb_step.dependOn(step);
+    return step;
 }
 
 fn extractIncludeDirsFromCompileStepInner(b: *std.Build, step: *std.Build.Step.Compile, lazy_path_output: *std.ArrayList(std.Build.LazyPath)) void {
